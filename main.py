@@ -1,7 +1,8 @@
 import os
 import json
 import logging
-from pathlib import Path
+import psycopg
+from psycopg.rows import dict_row
 from dotenv import load_dotenv
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -12,6 +13,7 @@ from telegram.error import BadRequest
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 PORT = int(os.getenv("PORT", "10000"))
 RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "super-secret-key")
@@ -25,7 +27,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 START_MOVES = 12
-SAVES_DIR = Path("saves")
 PLACEHOLDER_PATH = "placeholder.png"
 
 TRUST_NEUTRAL = "neutral"
@@ -173,15 +174,6 @@ INTERROGATION_QUESTIONS = {
 
 user_state = {}
 
-
-def ensure_saves_dir() -> None:
-    SAVES_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def save_path(user_id: int) -> Path:
-    return SAVES_DIR / f"user_{user_id}.json"
-
-
 def default_state() -> dict:
     return {
         "case_started": False,
@@ -196,24 +188,53 @@ def default_state() -> dict:
     }
 
 
+def get_db_connection():
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL не найден. Проверь Environment Variables в Render")
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
+
+def init_db() -> None:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS player_saves (
+                    user_id BIGINT PRIMARY KEY,
+                    state_json JSONB NOT NULL,
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """)
+        conn.commit()
+
+
 def load_state(user_id: int) -> dict | None:
-    ensure_saves_dir()
-    path = save_path(user_id)
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT state_json FROM player_saves WHERE user_id = %s",
+                (user_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return row["state_json"]
 
 
 def save_state(user_id: int) -> None:
-    ensure_saves_dir()
-    path = save_path(user_id)
-    path.write_text(
-        json.dumps(user_state[user_id], ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO player_saves (user_id, state_json, updated_at)
+                VALUES (%s, %s::jsonb, NOW())
+                ON CONFLICT (user_id)
+                DO UPDATE SET
+                    state_json = EXCLUDED.state_json,
+                    updated_at = NOW()
+                """,
+                (user_id, json.dumps(user_state[user_id], ensure_ascii=False))
+            )
+        conn.commit()
 
 
 def get_state(user_id: int) -> dict:
@@ -772,6 +793,8 @@ def main() -> None:
 
     if not WEBHOOK_URL:
         raise RuntimeError("RENDER_EXTERNAL_URL не найден. Укажи его в Render")
+
+    init_db()
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
