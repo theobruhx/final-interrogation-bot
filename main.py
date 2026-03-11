@@ -7,7 +7,7 @@ import psycopg
 from psycopg.rows import dict_row
 from dotenv import load_dotenv
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
@@ -44,6 +44,32 @@ SUSPECT_PHOTOS = {
     "nikita": "pic/suspects/Nikita.png",
     "timur": "pic/suspects/Timur.png",
 }
+
+LOCATION_PHOTOS = {
+    "kitchen": "pic/locations/kitchen.png",
+    "room": "pic/locations/dorm_room.png",
+    "corridor": "pic/locations/corridor.png",
+    "shower": "pic/locations/shower.png",
+    "library": "pic/locations/library.png",
+}
+
+SPOT_PHOTOS = {
+    "kitchen:table": "pic/kitchen/knife.png",
+    "kitchen:trash": "pic/kitchen/trash.png",
+    "kitchen:sink": "pic/kitchen/kitchen_sink.png",
+    "kitchen:fridge": "pic/kitchen/refrigerator.png",
+
+    "room:desk": "pic/dorm_room/desk.png",
+    "room:phone": "pic/dorm_room/phone.png",
+    "room:bedside": "pic/dorm_room/earring.png",
+    "room:papers": "pic/dorm_room/workspace.png",
+
+    "library:log": "pic/logbook.png",
+}
+
+CAMERA_MENU_PHOTO = "pic/cctv.png"
+JOURNAL_PHOTO = "pic/logbook.png"
+ACCUSE_PHOTO = "pic/handcuffs.png"
 
 STRONG_EVIDENCE_FLAGS = {
     "found_shower_wrapper",
@@ -703,6 +729,59 @@ async def safe_show_text_screen(query, context, text: str, reply_markup=None, pa
         )
 
 
+async def safe_show_photo_screen(query, context, photo_path: str | None, text: str, reply_markup=None, parse_mode=None) -> None:
+    if not photo_path or not Path(photo_path).exists():
+        await safe_show_text_screen(
+            query,
+            context,
+            text,
+            reply_markup=reply_markup,
+            parse_mode=parse_mode,
+        )
+        return
+
+    try:
+        if getattr(query.message, "photo", None):
+            with Path(photo_path).open("rb") as photo_file:
+                media = InputMediaPhoto(
+                    media=photo_file,
+                    caption=text,
+                    parse_mode=parse_mode,
+                )
+                await query.edit_message_media(
+                    media=media,
+                    reply_markup=reply_markup,
+                )
+        else:
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+
+            with Path(photo_path).open("rb") as photo_file:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=photo_file,
+                    caption=text,
+                    parse_mode=parse_mode,
+                    reply_markup=reply_markup,
+                )
+    except BadRequest:
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        with Path(photo_path).open("rb") as photo_file:
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=photo_file,
+                caption=text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup,
+            )
+
+
 async def show_main_menu(query, context, user_id: int) -> None:
     has_save = load_state(user_id) is not None
     await safe_show_text_screen(
@@ -742,10 +821,12 @@ async def show_investigation_menu(query, context, user_id: int) -> None:
 async def show_interrogation_menu(query, context, user_id: int, suspect_key: str) -> None:
     name = SUSPECTS[suspect_key]["name"]
     available_questions = get_available_questions(user_id, suspect_key)
+    photo_path = SUSPECT_PHOTOS.get(suspect_key)
 
-    await safe_show_text_screen(
+    await safe_show_photo_screen(
         query,
         context,
+        photo_path,
         f"Вы начинаете разговор с {name}.\n\n"
         f"Состояние: {trust_status_text(user_id, suspect_key)}\n"
         f"{moves_line(user_id)}\n\n"
@@ -879,27 +960,14 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             [InlineKeyboardButton("Назад в меню", callback_data="main_menu")],
         ])
 
-        if photo_path and Path(photo_path).exists():
-            try:
-                await query.message.delete()
-            except Exception:
-                pass
-
-            await context.bot.send_photo(
-                chat_id=query.message.chat_id,
-                photo=Path(photo_path).open("rb"),
-                caption=card_text,
-                parse_mode=ParseMode.HTML,
-                reply_markup=reply_markup,
-            )
-        else:
-            await safe_show_text_screen(
-                query,
-                context,
-                card_text,
-                reply_markup=reply_markup,
-                parse_mode=ParseMode.HTML,
-            )
+        await safe_show_photo_screen(
+            query,
+            context,
+            photo_path,
+            card_text,
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.HTML,
+        )
 
     elif query.data == "locations":
         if not state.get("case_started"):
@@ -936,6 +1004,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         location_key = query.data.split(":", 1)[1].strip()
         mark_location_visited(user_id, location_key)
+        photo_path = LOCATION_PHOTOS.get(location_key)
 
         if location_key == "kitchen":
             add_flag(user_id, "visited_kitchen")
@@ -974,9 +1043,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             text = "Локация пока недоступна."
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            photo_path,
             text,
             reply_markup=build_location_actions_markup(location_key),
         )
@@ -995,6 +1065,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         _, location_key, spot_key = query.data.split(":")
         full_spot_key = f"{location_key}:{spot_key}"
+        photo_path = SPOT_PHOTOS.get(full_spot_key)
 
         first_time = not was_spot_searched(user_id, full_spot_key)
 
@@ -1008,9 +1079,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
 
         if not first_time:
-            await safe_show_text_screen(
+            await safe_show_photo_screen(
                 query,
                 context,
+                photo_path,
                 "Вы уже внимательно осматривали это место.\n\n"
                 "Новой информации здесь пока нет.\n\n"
                 f"{moves_line(user_id)}",
@@ -1233,9 +1305,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     "Его версия всё слабее."
                 )
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            photo_path,
             text + f"\n\n{moves_line(user_id)}",
             reply_markup=reply_markup,
         )
@@ -1252,9 +1325,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             return
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            CAMERA_MENU_PHOTO,
             "Вы подходите к записям с камер наблюдения.\n\n"
             f"Предварительное время смерти, {TIME_OF_DEATH}.\n"
             "Выберите камеру, потом нужный промежуток времени.\n\n"
@@ -1277,9 +1351,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         camera_key = query.data.split(":", 1)[1].strip()
         camera_name = "кухни" if camera_key == "kitchen" else "коридора"
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            CAMERA_MENU_PHOTO,
             f"Вы выбираете запись с камеры {camera_name}.\n\n"
             "Укажите временной промежуток:",
             reply_markup=build_camera_time_markup(camera_key),
@@ -1378,9 +1453,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     "На камерах снова тишина и пусто."
                 )
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            CAMERA_MENU_PHOTO,
             text + f"\n\n{moves_line(user_id)}",
             reply_markup=reply_markup,
         )
@@ -1406,55 +1482,25 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             reply_markup=build_interrogation_suspects_markup(),
         )
 
-   elif query.data.startswith("interrogate:"):
-    if not state.get("case_started"):
-        await safe_show_text_screen(
-            query,
-            context,
-            "Сначала начните расследование.",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("Назад в меню", callback_data="main_menu")]]
-            ),
-        )
-        return
-
-    suspect_key = query.data.split("interrogate:", 1)[1].strip()
-
-    if suspect_key not in state["interrogated"]:
-        state["interrogated"].append(suspect_key)
-        save_state(user_id)
-
-    name = SUSPECTS[suspect_key]["name"]
-    available_questions = get_available_questions(user_id, suspect_key)
-    photo_path = SUSPECT_PHOTOS.get(suspect_key)
-
-    text = (
-        f"Вы начинаете разговор с {name}.\n\n"
-        f"Состояние: {trust_status_text(user_id, suspect_key)}\n"
-        f"{moves_line(user_id)}\n\n"
-        f"Доступно вопросов: {len(available_questions)}\n\n"
-        "Выберите вопрос:"
-    )
-
-    reply_markup = build_questions_markup(user_id, suspect_key)
-
-    try:
-        await query.message.delete()
-    except Exception:
-        pass
-
-    if photo_path and Path(photo_path).exists():
-        with open(photo_path, "rb") as photo:
-            await context.bot.send_photo(
-                chat_id=query.message.chat_id,
-                photo=photo,
+    elif query.data.startswith("interrogate:"):
+        if not state.get("case_started"):
+            await safe_show_text_screen(
+                query,
+                context,
+                "Сначала начните расследование.",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("Назад в меню", callback_data="main_menu")]]
+                ),
             )
+            return
 
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=text,
-        reply_markup=reply_markup,
-    )
+        suspect_key = query.data.split("interrogate:", 1)[1].strip()
+
+        if suspect_key not in state["interrogated"]:
+            state["interrogated"].append(suspect_key)
+            save_state(user_id)
+
+        await show_interrogation_menu(query, context, user_id, suspect_key)
 
     elif query.data.startswith("ask:"):
         _, suspect_key, question = query.data.split(":")
@@ -1577,9 +1623,11 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     worsen_trust_state(user_id, "maria", TRUST_CLOSED)
                     answer = "Мария бледнеет.\n\nНет. Я ничего не добавляла... Я просто не хотела, чтобы всплыл мой разговор с ним."
 
-        await safe_show_text_screen(
+        photo_path = SUSPECT_PHOTOS.get(suspect_key)
+        await safe_show_photo_screen(
             query,
             context,
+            photo_path,
             answer + f"\n\nСостояние: {trust_status_text(user_id, suspect_key)}",
             reply_markup=build_questions_markup(user_id, suspect_key),
         )
@@ -1607,9 +1655,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             text += "\n".join([f"• {item}" for item in notes])
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            JOURNAL_PHOTO,
             text,
             reply_markup=build_investigation_menu_markup(),
         )
@@ -1630,9 +1679,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         state["selected_evidence"] = []
         save_state(user_id)
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            ACCUSE_PHOTO,
             "Вы подходите к самому опасному шагу расследования.\n\n"
             "Сначала выберите подозреваемого:",
             reply_markup=build_accusation_suspects_markup(),
@@ -1646,9 +1696,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         suspect_name = SUSPECTS[suspect_key]["name"]
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            ACCUSE_PHOTO,
             f"Вы выбрали подозреваемого: {suspect_name}\n\n"
             "Теперь отметьте доказательства, которые хотите предъявить.\n"
             f"Для уверенного обвинения лучше собрать не меньше {MIN_STRONG_EVIDENCE_TO_WIN} сильных улик.",
@@ -1663,9 +1714,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         suspect_name = SUSPECTS[suspect_key]["name"] if suspect_key else "не выбран"
 
         selected_count = len(get_state(user_id).get("selected_evidence", []))
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            ACCUSE_PHOTO,
             f"Подозреваемый: {suspect_name}\n\n"
             f"Выбрано доказательств: {selected_count}\n"
             f"Для победы достаточно {MIN_STRONG_EVIDENCE_TO_WIN} сильных улик и правильного подозреваемого.\n\n"
@@ -1692,9 +1744,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             [InlineKeyboardButton("В меню", callback_data="main_menu")],
         ])
 
-        await safe_show_text_screen(
+        await safe_show_photo_screen(
             query,
             context,
+            ACCUSE_PHOTO,
             result_text,
             reply_markup=reply_markup,
         )
