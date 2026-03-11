@@ -29,7 +29,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 START_MOVES = 24
-PLACEHOLDER_PATH = "placeholder.png"
 
 TRUST_NEUTRAL = "neutral"
 TRUST_CAREFUL = "careful"
@@ -37,6 +36,14 @@ TRUST_CLOSED = "closed"
 
 CORRECT_SUSPECT = "maria"
 TIME_OF_DEATH = "22:45"
+
+SUSPECT_PHOTOS = {
+    "alina": "pic/suspects/Alina.png",
+    "danil": "pic/suspects/Danil.png",
+    "maria": "pic/suspects/Maria.png",
+    "nikita": "pic/suspects/Nikita.png",
+    "timur": "pic/suspects/Timur.png",
+}
 
 STRONG_EVIDENCE_FLAGS = {
     "found_shower_wrapper",
@@ -865,13 +872,14 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     elif query.data.startswith("suspect:"):
         key = query.data.split("suspect:", 1)[1].strip()
         card_text = SUSPECTS.get(key, {}).get("card", "Карточка не найдена.")
+        photo_path = SUSPECT_PHOTOS.get(key)
 
         reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("Назад к списку", callback_data="suspects")],
             [InlineKeyboardButton("Назад в меню", callback_data="main_menu")],
         ])
 
-        if key == "alina" and Path(PLACEHOLDER_PATH).exists():
+        if photo_path and Path(photo_path).exists():
             try:
                 await query.message.delete()
             except Exception:
@@ -879,7 +887,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                photo=PLACEHOLDER_PATH,
+                photo=Path(photo_path).open("rb"),
                 caption=card_text,
                 parse_mode=ParseMode.HTML,
                 reply_markup=reply_markup,
@@ -1114,7 +1122,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             elif spot_key == "floor":
                 add_flag(user_id, "found_nikita_shoeprint")
                 add_clue_by_key(user_id, "nikita_shoeprint")
-                add_note(user_id, "У двери комнаты найден след обуви, совпадающий с обувью Никиты. Это выглядит плохо для него, но нужно проверить время.")
+                add_note(user_id, "У двери комнаты найден след обуви, совпадающий с обувью Никиты. Это выглядит плохо для него.")
                 text = (
                     "Вы осматриваете пол у комнаты.\n\n"
                     "У порога заметен отчётливый след обуви. По рисунку подошвы он совпадает с обувью Никиты.\n\n"
@@ -1320,11 +1328,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 add_flag(user_id, "saw_kitchen_21_22")
                 add_flag(user_id, "saw_danil_kitchen_21_22")
                 add_clue_by_key(user_id, "camera_kitchen_21_22_danil")
-                add_note(user_id, "Камера кухни за 21:00–22:00 показывает Данила с ножом. Он режет хлеб и делает себе бутерброд. Это объясняет отпечатки на ноже.")
+                add_note(user_id, "Камера кухни за 21:00–22:00 показывает Данила с ножом. Он режет хлеб и делает себе бутерброд.")
                 text = (
                     "Вы просматриваете камеру кухни за 21:00–22:00.\n\n"
-                    "Около 21:37 Данил заходит на кухню, берёт тот самый нож и режет хлеб. Через пару минут он собирает себе бутерброд и уходит.\n\n"
-                    "Отпечатки на ноже получают бытовое объяснение."
+                    "Около 21:37 Данил заходит на кухню, берёт тот самый нож и режет хлеб. Через пару минут он собирает себе бутерброд и уходит."
                 )
 
             elif slot_key == "22_23":
@@ -1343,22 +1350,20 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 add_flag(user_id, "saw_corridor_20_21")
                 add_flag(user_id, "saw_alina_corridor_20_21")
                 add_clue_by_key(user_id, "camera_corridor_20_21_alina")
-                add_note(user_id, "Камера коридора за 20:00–21:00 показывает Алину у комнаты Ильи. Она заходит ненадолго и выходит раньше. Это может объяснить найденную серьгу.")
+                add_note(user_id, "Камера коридора за 20:00–21:00 показывает Алину у комнаты Ильи. Она заходит ненадолго и выходит раньше.")
                 text = (
                     "Вы просматриваете камеру коридора за 20:00–21:00.\n\n"
-                    "Около 20:18 Алина подходит к комнате Ильи, заходит внутрь на короткое время и уже через пару минут выходит обратно.\n\n"
-                    "Это объясняет, почему её серьга могла остаться в комнате, но не связывает её напрямую со смертью."
+                    "Около 20:18 Алина подходит к комнате Ильи, заходит внутрь на короткое время и уже через пару минут выходит обратно."
                 )
 
             elif slot_key == "21_22":
                 add_flag(user_id, "saw_corridor_21_22")
                 add_flag(user_id, "saw_nikita_corridor_21_22")
                 add_clue_by_key(user_id, "camera_corridor_21_22_nikita")
-                add_note(user_id, "Камера коридора за 21:00–22:00 показывает Никиту у комнаты. Его след у двери получает объяснение, он действительно был там раньше.")
+                add_note(user_id, "Камера коридора за 21:00–22:00 показывает Никиту у комнаты.")
                 text = (
                     "Вы просматриваете камеру коридора за 21:00–22:00.\n\n"
-                    "Около 21:12 Никита подходит к комнате, возится у двери и ненадолго заходит внутрь, а затем быстро выходит.\n\n"
-                    "След обуви у двери можно объяснить именно этим моментом."
+                    "Около 21:12 Никита подходит к комнате, возится у двери и ненадолго заходит внутрь, а затем быстро выходит."
                 )
 
             elif slot_key == "22_23":
