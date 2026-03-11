@@ -1406,25 +1406,55 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             reply_markup=build_interrogation_suspects_markup(),
         )
 
-    elif query.data.startswith("interrogate:"):
-        if not state.get("case_started"):
-            await safe_show_text_screen(
-                query,
-                context,
-                "Сначала начните расследование.",
-                reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("Назад в меню", callback_data="main_menu")]]
-                ),
+   elif query.data.startswith("interrogate:"):
+    if not state.get("case_started"):
+        await safe_show_text_screen(
+            query,
+            context,
+            "Сначала начните расследование.",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("Назад в меню", callback_data="main_menu")]]
+            ),
+        )
+        return
+
+    suspect_key = query.data.split("interrogate:", 1)[1].strip()
+
+    if suspect_key not in state["interrogated"]:
+        state["interrogated"].append(suspect_key)
+        save_state(user_id)
+
+    name = SUSPECTS[suspect_key]["name"]
+    available_questions = get_available_questions(user_id, suspect_key)
+    photo_path = SUSPECT_PHOTOS.get(suspect_key)
+
+    text = (
+        f"Вы начинаете разговор с {name}.\n\n"
+        f"Состояние: {trust_status_text(user_id, suspect_key)}\n"
+        f"{moves_line(user_id)}\n\n"
+        f"Доступно вопросов: {len(available_questions)}\n\n"
+        "Выберите вопрос:"
+    )
+
+    reply_markup = build_questions_markup(user_id, suspect_key)
+
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
+
+    if photo_path and Path(photo_path).exists():
+        with open(photo_path, "rb") as photo:
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=photo,
             )
-            return
 
-        suspect_key = query.data.split("interrogate:", 1)[1].strip()
-
-        if suspect_key not in state["interrogated"]:
-            state["interrogated"].append(suspect_key)
-            save_state(user_id)
-
-        await show_interrogation_menu(query, context, user_id, suspect_key)
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=reply_markup,
+    )
 
     elif query.data.startswith("ask:"):
         _, suspect_key, question = query.data.split(":")
