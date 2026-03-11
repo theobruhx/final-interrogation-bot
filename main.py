@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-START_MOVES = 22
+START_MOVES = 24
 PLACEHOLDER_PATH = "placeholder.png"
 
 TRUST_NEUTRAL = "neutral"
@@ -36,12 +36,13 @@ TRUST_CAREFUL = "careful"
 TRUST_CLOSED = "closed"
 
 CORRECT_SUSPECT = "maria"
+TIME_OF_DEATH = "22:45"
 
 STRONG_EVIDENCE_FLAGS = {
-    "found_drink",
+    "found_shower_wrapper",
     "found_phone_logs",
-    "found_pill_package",
-    "saw_maria_on_kitchen_camera",
+    "found_drink",
+    "saw_maria_kitchen_22_23",
 }
 
 MIN_STRONG_EVIDENCE_TO_WIN = 3
@@ -49,9 +50,11 @@ MIN_STRONG_EVIDENCE_TO_WIN = 3
 RULES_TEXT = (
     "Правила игры\n\n"
     "Перед вами детективная история с ограниченным числом ходов. "
-    f"На одно дело у вас есть {START_MOVES} ходов.\n\n"
-    "Ходы тратятся на осмотр локаций, просмотр камер и новые действия расследования. "
+    f"На одно дело у вас есть {START_MOVES} хода.\n\n"
+    "Ходы тратятся на осмотр локаций, просмотр камер по временным промежуткам и новые действия расследования. "
     "Журнал, досье и папку с уликами можно открывать бесплатно.\n\n"
+    f"Судмедэксперт предварительно определил время смерти Ильи, {TIME_OF_DEATH}. "
+    "Поэтому особенно важно сверять улики с камерами и смотреть, у кого в это время есть алиби.\n\n"
     "Часть вопросов открывается только после того, как вы находите новую информацию. "
     "Сначала собирайте факты, потом возвращайтесь к подозреваемым.\n\n"
     "У каждого подозреваемого есть своё состояние. Если вы слишком рано давите, "
@@ -61,7 +64,8 @@ RULES_TEXT = (
 
 HELP_TEXT = (
     "Помощь\n\n"
-    "Лучше сначала осмотреть ключевые места и камеры, а уже потом идти на допрос.\n\n"
+    f"Ключевая точка расследования, время смерти Ильи, {TIME_OF_DEATH}.\n\n"
+    "Лучше сначала осмотреть ключевые места и камеры по промежуткам времени, а уже потом идти на допрос.\n\n"
     "Журнал помогает не потеряться в нитях расследования.\n\n"
     "Для уверенного обвинения лучше собрать не меньше 3 сильных улик."
 )
@@ -76,9 +80,9 @@ SUSPECTS = {
 <b>Статус:</b> студентка 2 курса
 <b>Проживает:</b> блок 314, соседка жертвы
 
-Алина живёт в общежитии уже второй год. По словам соседей, часто шумит и устраивает поздние встречи с друзьями. Жертва неоднократно жаловалась на неё коменданту.
+Алина живёт в общежитии уже второй год. По словам соседей, часто шумит и устраивает поздние встречи с друзьями. Илья неоднократно жаловался на неё коменданту.
 
-В день происшествия Алина находилась на этаже и могла контактировать с Ильёй. Она утверждает, что вечером занималась своими делами и не заходила к нему.
+В день происшествия Алина находилась на этаже и могла контактировать с Ильёй. Она утверждает, что вечером занималась своими делами и не заходила к нему незадолго до смерти.
 """,
         "is_guilty": False,
     },
@@ -93,7 +97,7 @@ SUSPECTS = {
 
 Тимур был близким другом Ильи и часто помогал ему с учёбой. В последнее время между ними возникали напряжённые разговоры, и соседи слышали спор на повышенных тонах.
 
-В ночь происшествия Тимур утверждает, что почти не выходил из комнаты. При этом его видели на кухне, где жильцы часто готовят кофе и разводят энергетики.
+В ночь происшествия Тимур утверждает, что почти не выходил из комнаты. При этом его имя всплывает рядом с одной из бытовых улик.
 """,
         "is_guilty": False,
     },
@@ -108,7 +112,7 @@ SUSPECTS = {
 
 Никита делил комнату с Ильёй. Их отношения были сложными. Соседи не раз слышали ссоры и взаимные претензии. Илья говорил, что хочет переехать и написать заявление.
 
-В день происшествия Никита заявляет, что был в библиотеке и вернулся поздно. Некоторые детали его алиби звучат неуверенно, и он раздражается на уточняющие вопросы.
+В день происшествия Никита сначала говорит, что был занят своими делами. Некоторые детали его слов звучат неуверенно, и он раздражается на уточняющие вопросы.
 """,
         "is_guilty": False,
     },
@@ -153,49 +157,57 @@ SUSPECT_ORDER = [
 ]
 
 CLUE_TEXTS = {
-    "kitchen_table": "На кухонном столе найдены открытые банки энергетика и липкий след.",
-    "pill_package": "В мусорном ведре кухни найдена упаковка от таблеток.",
+    "time_of_death": f"Судмедэксперт определил предварительное время смерти Ильи, {TIME_OF_DEATH}.",
+    "knife": "На кухонном столе найден нож с отпечатками Данила.",
+    "glass_shard": "В мусорном ведре кухни найден осколок стакана с отпечатками Тимура.",
     "rinsed_mug": "В раковине стоит плохо промытая кружка с горьким запахом.",
     "shared_drinks": "Напитки на кухне были в общем доступе.",
     "victim_drink": "В комнате Ильи найден недопитый напиток с горьким привкусом.",
     "phone_logs": "В телефоне Ильи есть недавний звонок Марии.",
-    "room_disturbance": "В комнате заметны следы недавнего беспорядка.",
+    "alina_earring": "У кровати найдена серьга Алины.",
     "project_notes": "В бумагах Ильи есть записи о проекте и конкурсе на грант.",
     "corridor_argument": "Жильцы коридора подтверждают, что вечером у комнаты был спор.",
-    "corridor_drink_trace": "У двери комнаты найден липкий след от напитка.",
+    "nikita_shoeprint": "У двери комнаты найден след обуви, совпадающий с обувью Никиты.",
     "door_no_break": "На двери комнаты нет следов взлома.",
     "window_napkin": "На подоконнике найдена салфетка с запахом энергетика.",
-    "kitchen_camera_maria": "Камера кухни показывает Марию рядом с напитками.",
-    "corridor_camera_nikita": "Камера коридора показывает Никиту у двери комнаты.",
     "shower_bitter_smell": "В душевой найден стакан с едва заметным горьким запахом.",
     "shower_wrapper": "У стока в душевой застрял размокший клочок упаковки от таблеток.",
     "shower_wet_trace": "В душевой замечен недавний след воды и спешной уборки.",
-    "library_bookmark": "В библиотеке найдено подтверждение, что Никита не провёл там весь вечер.",
+    "library_bookmark": "В библиотеке найдено подтверждение, что Никита не был там весь вечер.",
     "library_log_gap": "В библиотечном журнале есть временной провал в алиби Никиты.",
     "library_project_print": "В библиотеке сохранилась распечатка проекта с пометками Марии и Ильи.",
+    "camera_corridor_20_21_alina": "Камера коридора с 20:00 до 21:00 показывает Алину у комнаты Ильи.",
+    "camera_corridor_21_22_nikita": "Камера коридора с 21:00 до 22:00 показывает Никиту у двери комнаты.",
+    "camera_corridor_22_23_timur": "Камера коридора с 22:00 до 23:00 показывает Тимура в момент, когда у него формируется алиби.",
+    "camera_kitchen_21_22_danil": "Камера кухни с 21:00 до 22:00 показывает Данила с ножом, когда он делает бутерброд.",
+    "camera_kitchen_22_23_maria": "Камера кухни с 22:00 до 23:00 показывает Марию рядом с напитками незадолго до времени смерти.",
 }
 
 FLAG_TO_CLUE_KEY = {
-    "found_energy_drinks": "kitchen_table",
-    "found_pill_package": "pill_package",
+    "known_time_of_death": "time_of_death",
+    "found_knife": "knife",
+    "found_glass_shard": "glass_shard",
     "found_rinsed_mug": "rinsed_mug",
     "checked_fridge": "shared_drinks",
     "found_drink": "victim_drink",
     "found_phone_logs": "phone_logs",
-    "found_room_disturbance": "room_disturbance",
+    "found_alina_earring": "alina_earring",
     "found_project_notes": "project_notes",
     "heard_argument": "corridor_argument",
-    "found_corridor_trace": "corridor_drink_trace",
+    "found_nikita_shoeprint": "nikita_shoeprint",
     "checked_door": "door_no_break",
     "checked_window": "window_napkin",
-    "saw_maria_on_kitchen_camera": "kitchen_camera_maria",
-    "saw_nikita_in_corridor": "corridor_camera_nikita",
     "found_shower_glass": "shower_bitter_smell",
     "found_shower_wrapper": "shower_wrapper",
     "found_shower_trace": "shower_wet_trace",
     "found_library_bookmark": "library_bookmark",
     "found_library_gap": "library_log_gap",
     "found_library_project": "library_project_print",
+    "saw_alina_corridor_20_21": "camera_corridor_20_21_alina",
+    "saw_nikita_corridor_21_22": "camera_corridor_21_22_nikita",
+    "saw_timur_corridor_22_23": "camera_corridor_22_23_timur",
+    "saw_danil_kitchen_21_22": "camera_kitchen_21_22_danil",
+    "saw_maria_kitchen_22_23": "camera_kitchen_22_23_maria",
 }
 
 INTERROGATION_QUESTIONS = {
@@ -203,27 +215,23 @@ INTERROGATION_QUESTIONS = {
         "where": {"text": "Где вы были вечером?", "requires": []},
         "last_seen": {"text": "Когда вы в последний раз видели Илью?", "requires": []},
         "relation": {"text": "Какие у вас были отношения с Ильёй?", "requires": []},
-        "heard_noise": {"text": "Вы слышали шум вечером?", "requires": ["heard_noise"]},
         "heard_argument": {"text": "Вы слышали спор в коридоре?", "requires": ["heard_argument"]},
-        "kitchen_visit": {"text": "Вы заходили на кухню вечером?", "requires": ["visited_kitchen"]},
-        "kitchen_seen": {"text": "Видели ли вы кого-нибудь на кухне?", "requires": ["visited_kitchen"]},
+        "earring": {"text": "Почему ваша серьга была у кровати Ильи?", "requires": ["found_alina_earring"]},
+        "camera": {
+            "text": "Камера показывает вас у комнаты с 20:00 до 21:00. Что вы там делали?",
+            "requires": ["saw_corridor_20_21", "saw_alina_corridor_20_21"],
+        },
         "shower": {"text": "Вы были в душевой вечером?", "requires": ["visited_shower"]},
     },
     "timur": {
         "where": {"text": "Где вы были вечером?", "requires": []},
         "last_seen": {"text": "Когда вы в последний раз видели Илью?", "requires": []},
         "relation": {"text": "Какие у вас были отношения с Ильёй?", "requires": []},
-        "heard_noise": {"text": "Вы слышали шум вечером?", "requires": ["heard_noise"]},
         "heard_argument": {"text": "Вы слышали спор в коридоре?", "requires": ["heard_argument"]},
-        "kitchen_visit": {"text": "Вы заходили на кухню вечером?", "requires": ["visited_kitchen"]},
-        "energy": {"text": "Вы пили энергетики вечером?", "requires": ["found_energy_drinks"]},
-        "camera_kitchen": {
-            "text": "Камера показывает, что вы были на кухне. Что вы там делали?",
-            "requires": ["saw_kitchen_camera", "saw_timur_on_kitchen_camera"],
-        },
-        "corridor_camera": {
-            "text": "Камера показывает, что вы были рядом с комнатой Ильи. Зачем?",
-            "requires": ["saw_corridor_camera", "saw_timur_in_corridor"],
+        "glass": {"text": "Почему на осколке стакана ваши отпечатки?", "requires": ["found_glass_shard"]},
+        "camera": {
+            "text": "Камера показывает вас в коридоре в промежутке 22:00–23:00. Объясните.",
+            "requires": ["saw_corridor_22_23", "saw_timur_corridor_22_23"],
         },
         "project": {"text": "Вы знали о напряжении вокруг проекта?", "requires": ["found_project_notes"]},
     },
@@ -231,15 +239,11 @@ INTERROGATION_QUESTIONS = {
         "where": {"text": "Где вы были вечером?", "requires": []},
         "last_seen": {"text": "Когда вы в последний раз видели Илью?", "requires": []},
         "relation": {"text": "Какие у вас были отношения с Ильёй?", "requires": []},
-        "heard_noise": {"text": "Вы слышали шум вечером?", "requires": ["heard_noise"]},
-        "heard_argument": {"text": "Вы слышали спор в коридоре?", "requires": ["heard_argument"]},
         "room": {"text": "Вы были в комнате в тот момент?", "requires": []},
-        "kitchen_visit": {"text": "Вы заходили на кухню вечером?", "requires": ["visited_kitchen"]},
-        "energy": {"text": "Вы брали энергетики на кухне?", "requires": ["found_energy_drinks"]},
-        "drink": {"text": "Кто приносил Илье напиток?", "requires": ["found_drink"]},
-        "corridor_camera": {
-            "text": "Камера показывает, что вы были у комнаты. Почему вы не сказали об этом?",
-            "requires": ["saw_corridor_camera", "saw_nikita_in_corridor"],
+        "shoeprint": {"text": "Почему след у двери совпадает с вашей обувью?", "requires": ["found_nikita_shoeprint"]},
+        "camera": {
+            "text": "Камера показывает вас у комнаты с 21:00 до 22:00. Почему вы это не сказали?",
+            "requires": ["saw_corridor_21_22", "saw_nikita_corridor_21_22"],
         },
         "library": {"text": "Вы точно всё время были в библиотеке?", "requires": ["visited_library"]},
         "library_gap": {"text": "Почему в библиотечном журнале провал во времени?", "requires": ["found_library_gap"]},
@@ -248,14 +252,11 @@ INTERROGATION_QUESTIONS = {
         "where": {"text": "Где вы были вечером?", "requires": []},
         "last_seen": {"text": "Когда вы в последний раз видели Илью?", "requires": []},
         "relation": {"text": "Какие у вас были отношения с Ильёй?", "requires": []},
-        "heard_noise": {"text": "Вы слышали шум вечером?", "requires": ["heard_noise"]},
-        "heard_argument": {"text": "Вы слышали спор в коридоре?", "requires": ["heard_argument"]},
         "patrol": {"text": "Вы обходили этаж вечером?", "requires": []},
-        "kitchen_visit": {"text": "Вы заходили на кухню вечером?", "requires": ["visited_kitchen"]},
-        "energy": {"text": "Кто обычно берёт энергетики на кухне?", "requires": ["found_energy_drinks"]},
-        "corridor_camera": {
-            "text": "Камера показывает, что вы проходили мимо комнаты. Почему вы это не упомянули?",
-            "requires": ["saw_corridor_camera", "saw_danil_in_corridor"],
+        "knife": {"text": "Почему на ноже ваши отпечатки?", "requires": ["found_knife"]},
+        "camera": {
+            "text": "Камера кухни показывает вас с ножом с 21:00 до 22:00. Что вы делали?",
+            "requires": ["saw_kitchen_21_22", "saw_danil_kitchen_21_22"],
         },
         "shower": {"text": "Кто мог быть в душевой после происшествия?", "requires": ["visited_shower"]},
     },
@@ -264,21 +265,16 @@ INTERROGATION_QUESTIONS = {
         "last_seen": {"text": "Когда вы в последний раз видели Илью?", "requires": []},
         "relation": {"text": "Какие у вас были отношения с Ильёй?", "requires": []},
         "study": {"text": "Вы работали с ним по учёбе?", "requires": []},
-        "heard_noise": {"text": "Вы слышали шум вечером?", "requires": ["heard_noise"]},
-        "heard_argument": {"text": "Вы слышали спор в коридоре?", "requires": ["heard_argument"]},
-        "kitchen_visit": {"text": "Вы заходили на кухню вечером?", "requires": ["visited_kitchen"]},
-        "kitchen_seen": {"text": "Видели ли вы кого-нибудь на кухне?", "requires": ["visited_kitchen"]},
-        "phone": {"text": "Илья кому-нибудь звонил перед смертью?", "requires": ["found_phone"]},
-        "call": {"text": "Илья звонил вам вечером?", "requires": ["found_phone_logs"]},
+        "phone": {"text": "Илья звонил вам вечером?", "requires": ["found_phone_logs"]},
         "drink": {"text": "Кто приносил Илье напиток?", "requires": ["found_drink"]},
-        "camera_kitchen": {
-            "text": "Камера показывает, что вы были на кухне. Что вы там делали?",
-            "requires": ["saw_kitchen_camera", "saw_maria_on_kitchen_camera"],
+        "camera": {
+            "text": "Камера кухни показывает вас рядом с напитками с 22:00 до 23:00. Что вы там делали?",
+            "requires": ["saw_kitchen_22_23", "saw_maria_kitchen_22_23"],
         },
         "project": {"text": "Вы конфликтовали из-за гранта?", "requires": ["found_project_notes"]},
         "poison": {
             "text": "Вы добавили что-то в напиток Ильи?",
-            "requires": ["found_drink", "found_energy_drinks", "saw_kitchen_camera", "saw_maria_on_kitchen_camera"],
+            "requires": ["found_drink", "found_phone_logs", "found_shower_wrapper", "saw_maria_kitchen_22_23"],
         },
     },
 }
@@ -364,6 +360,12 @@ def get_state(user_id: int) -> dict:
 def reset_case_state(user_id: int) -> None:
     user_state[user_id] = default_state()
     user_state[user_id]["case_started"] = True
+    user_state[user_id]["flags"].append("known_time_of_death")
+    user_state[user_id]["found_clues"].append(CLUE_TEXTS["time_of_death"])
+    user_state[user_id]["journal"].append(
+        f"Судмедэксперт сообщил предварительное время смерти Ильи, {TIME_OF_DEATH}. "
+        "Все алиби нужно проверять относительно этого времени."
+    )
     save_state(user_id)
 
 
@@ -606,9 +608,19 @@ def build_location_actions_markup(location_key: str) -> InlineKeyboardMarkup:
 
 def build_cameras_markup() -> InlineKeyboardMarkup:
     keyboard = [
-        [InlineKeyboardButton("Камера кухни", callback_data="camera:kitchen")],
-        [InlineKeyboardButton("Камера коридора", callback_data="camera:corridor")],
+        [InlineKeyboardButton("Камера кухни", callback_data="camera_select:kitchen")],
+        [InlineKeyboardButton("Камера коридора", callback_data="camera_select:corridor")],
         [InlineKeyboardButton("Назад в расследование", callback_data="back_to_investigation")],
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def build_camera_time_markup(camera_key: str) -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton("20:00 - 21:00", callback_data=f"camera:{camera_key}:20_21")],
+        [InlineKeyboardButton("21:00 - 22:00", callback_data=f"camera:{camera_key}:21_22")],
+        [InlineKeyboardButton("22:00 - 23:00", callback_data=f"camera:{camera_key}:22_23")],
+        [InlineKeyboardButton("Назад к камерам", callback_data="cameras")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -714,6 +726,7 @@ async def show_investigation_menu(query, context, user_id: int) -> None:
         query,
         context,
         "Вы заходите в холл общежития. Расследование продолжается.\n\n"
+        f"Время смерти Ильи по предварительным данным, {TIME_OF_DEATH}.\n"
         f"{moves_line(user_id)}",
         reply_markup=build_investigation_menu_markup(),
     )
@@ -757,9 +770,10 @@ def accusation_result_text(user_id: int) -> str:
 
     if chosen_suspect == CORRECT_SUSPECT and strong_count >= MIN_STRONG_EVIDENCE_TO_WIN:
         return (
-            "Вы собираете показания, сопоставляете улики и окончательно выстраиваете цепочку событий.\n\n"
-            "Мария скрыла звонок с Ильёй, была на кухне рядом с напитками, а линия с таблетками и напитком слишком плотно сходится именно к ней.\n\n"
-            "Под давлением доказательств она ломается. Дело раскрыто.\n\n"
+            "Вы сопоставляете время смерти, записи с камер и найденные улики.\n\n"
+            "У каждого из остальных подозреваемых появляется объяснение своей улики или алиби. "
+            "Только линия Марии не распадается, звонок, напиток, таблетки и запись с кухни сходятся в одну цепочку.\n\n"
+            "Под давлением доказательств Мария ломается. Дело раскрыто.\n\n"
             "🏆 Победа"
         )
 
@@ -820,6 +834,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query,
             context,
             "Вы заходите в холл общежития. Сейчас начнётся расследование.\n\n"
+            f"Судмедэксперт уже назвал предварительное время смерти Ильи, {TIME_OF_DEATH}.\n"
             "Перед вами длинный коридор, общая кухня, душевая, библиотека и слишком много людей, которым есть что скрывать.",
             reply_markup=build_investigation_menu_markup(),
         )
@@ -894,6 +909,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query,
             context,
             "Вы выбираете, что осмотреть.\n\n"
+            f"Известное время смерти, {TIME_OF_DEATH}.\n"
             f"{moves_line(user_id)}",
             reply_markup=build_locations_markup(),
         )
@@ -917,7 +933,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             add_flag(user_id, "visited_kitchen")
             text = (
                 "Вы входите на общую кухню.\n\n"
-                "На столе стоит посуда, у раковины что-то недавно споласкивали, а мусорное ведро переполнено.\n\n"
+                "На столе лежит посуда, один нож оставили прямо на столешнице, раковину явно споласкивали наспех, а мусорное ведро переполнено.\n\n"
                 "Выберите, что осмотреть:"
             )
         elif location_key == "room":
@@ -930,7 +946,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             add_flag(user_id, "heard_noise")
             text = (
                 "Вы осматриваете коридор у комнаты Ильи.\n\n"
-                "Здесь слышали шум, кто-то проходил мимо в нужное время, а жильцы готовы делиться воспоминаниями.\n\n"
+                "Здесь слышали шум, кто-то проходил мимо в важные промежутки времени, а жильцы готовы делиться воспоминаниями.\n\n"
                 "Выберите, что осмотреть:"
             )
         elif location_key == "shower":
@@ -1001,23 +1017,23 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             add_flag(user_id, "visited_kitchen")
 
             if spot_key == "table":
-                add_flag(user_id, "found_energy_drinks")
-                add_clue_by_key(user_id, "kitchen_table")
-                add_note(user_id, "На кухонном столе найдены энергетики. Теперь можно спрашивать, кто пил их вечером.")
+                add_flag(user_id, "found_knife")
+                add_clue_by_key(user_id, "knife")
+                add_note(user_id, "На кухонном столе найден нож с отпечатками Данила. Пока это выглядит подозрительно, но нужно сверить с камерами.")
                 text = (
                     "Вы осматриваете стол.\n\n"
-                    "Среди кружек и упаковок стоят открытые банки энергетика. На поверхности липкий след, будто что-то пролили наспех.\n\n"
-                    "Теперь открылись вопросы про энергетики."
+                    "Среди кружек и тарелок лежит кухонный нож. На рукоятке хорошо читаются отпечатки Данила.\n\n"
+                    "Это сильная подозрительная улика, но пока не ясно, связана ли она с убийством."
                 )
 
             elif spot_key == "trash":
-                add_flag(user_id, "found_pill_package")
-                add_clue_by_key(user_id, "pill_package")
-                add_note(user_id, "В мусорном ведре найдена упаковка от таблеток. Это может быть связано с причиной смерти.")
+                add_flag(user_id, "found_glass_shard")
+                add_clue_by_key(user_id, "glass_shard")
+                add_note(user_id, "В мусорном ведре найден осколок стакана с отпечатками Тимура. Это может указывать на конфликт, но пока слишком рано делать выводы.")
                 text = (
                     "Вы проверяете мусорное ведро.\n\n"
-                    "Под салфетками и пустыми упаковками лежит смятая блистерная упаковка. В ней не хватает двух таблеток.\n\n"
-                    "Это уже серьёзная улика."
+                    "Под салфетками и упаковками лежит крупный осколок стакана. На нём различимы отпечатки Тимура.\n\n"
+                    "Похоже, стакан разбили незадолго до происшествия."
                 )
 
             elif spot_key == "sink":
@@ -1027,7 +1043,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 text = (
                     "Вы осматриваете раковину.\n\n"
                     "Внутри стоит кружка, которую явно сполоснули наспех. От неё идёт слабый горький запах.\n\n"
-                    "Версия с напитком выглядит серьёзнее."
+                    "Версия с напитком начинает выглядеть серьёзнее."
                 )
 
             elif spot_key == "fridge":
@@ -1036,8 +1052,8 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 add_note(user_id, "Напитки на кухне были в общем доступе. Это важно для версии с подмешиванием.")
                 text = (
                     "Вы проверяете холодильник.\n\n"
-                    "Внутри стоят общие напитки, вода и ещё несколько банок. Доступ к ним явно был у всех.\n\n"
-                    "Это не даёт имени, но расширяет круг тех, кто мог подмешать что-то в напиток."
+                    "Внутри стоят общие напитки, вода и несколько банок. Доступ к ним явно был у всех.\n\n"
+                    "Это не называет виновного, но показывает, что подойти к напиткам мог не один человек."
                 )
 
         elif location_key == "room":
@@ -1047,7 +1063,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 add_note(user_id, "В комнате найден недопитый напиток Ильи. Теперь можно спрашивать, кто его приносил.")
                 text = (
                     "Вы осматриваете стол.\n\n"
-                    "Среди тетрадей и зарядки стоит недопитый напиток. Запах сладкий, но во вкусе явно чувствовалась бы горечь.\n\n"
+                    "Среди тетрадей и зарядки стоит недопитый напиток. Запах сладкий, но послевкусие у него заметно горчит.\n\n"
                     "Теперь открылись вопросы про напиток жертвы."
                 )
 
@@ -1063,13 +1079,13 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
 
             elif spot_key == "bedside":
-                add_flag(user_id, "found_room_disturbance")
-                add_clue_by_key(user_id, "room_disturbance")
-                add_note(user_id, "В комнате заметны следы недавнего беспорядка. Версия о конфликте усиливается.")
+                add_flag(user_id, "found_alina_earring")
+                add_clue_by_key(user_id, "alina_earring")
+                add_note(user_id, "У кровати найдена серьга Алины. Это указывает на то, что она была в комнате, но время её присутствия ещё нужно проверить.")
                 text = (
                     "Вы осматриваете кровать и тумбу.\n\n"
-                    "Вещи лежат неровно, одна из книг упала на пол, а на тумбе будто что-то резко сдвинули.\n\n"
-                    "Похоже, в комнате действительно был напряжённый разговор."
+                    "Под краем кровати блестит серьга. По описанию соседей и фотографиям из досье, она принадлежит Алине.\n\n"
+                    "Теперь у Алины появилась очень неприятная улика."
                 )
 
             elif spot_key == "papers":
@@ -1088,30 +1104,30 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             if spot_key == "witnesses":
                 add_flag(user_id, "heard_argument")
                 add_clue_by_key(user_id, "corridor_argument")
-                add_note(user_id, "Жильцы подтверждают, что вечером у комнаты Ильи был спор. Теперь можно задавать прямые вопросы о шуме и ссоре.")
+                add_note(user_id, "Жильцы подтверждают, что вечером у комнаты Ильи был спор. Теперь можно задавать прямые вопросы о ссоре.")
                 text = (
                     "Вы разговариваете с жильцами.\n\n"
                     "Несколько человек вспоминают, что вечером у комнаты Ильи действительно звучали раздражённые голоса.\n\n"
-                    "Теперь открылись вопросы про шум и спор."
+                    "Теперь открылись вопросы про спор."
                 )
 
             elif spot_key == "floor":
-                add_flag(user_id, "found_corridor_trace")
-                add_clue_by_key(user_id, "corridor_drink_trace")
-                add_note(user_id, "У комнаты найден след от напитка. Это связывает коридор с версией о подмешивании.")
+                add_flag(user_id, "found_nikita_shoeprint")
+                add_clue_by_key(user_id, "nikita_shoeprint")
+                add_note(user_id, "У двери комнаты найден след обуви, совпадающий с обувью Никиты. Это выглядит плохо для него, но нужно проверить время.")
                 text = (
                     "Вы осматриваете пол у комнаты.\n\n"
-                    "У порога заметен старый липкий след. Кто-то, похоже, нёс напиток и пролил немного по дороге.\n\n"
-                    "Это делает маршрут от кухни до комнаты ещё важнее."
+                    "У порога заметен отчётливый след обуви. По рисунку подошвы он совпадает с обувью Никиты.\n\n"
+                    "Это важная улика против соседа по комнате."
                 )
 
             elif spot_key == "door":
                 add_flag(user_id, "checked_door")
                 add_clue_by_key(user_id, "door_no_break")
-                add_note(user_id, "На двери нет следов взлома. Значит, жертва либо знала гостя, либо не ждала угрозы.")
+                add_note(user_id, "На двери нет следов взлома. Значит, Илья либо сам открыл, либо не ждал опасности.")
                 text = (
                     "Вы осматриваете дверь.\n\n"
-                    "Замок цел, следов взлома нет. Похоже, Илья сам открыл дверь или вообще не опасался того, кто пришёл.\n\n"
+                    "Замок цел, следов взлома нет. Похоже, Илья сам впустил того, кто пришёл, или дверь вообще не закрывали.\n\n"
                     "Это сужает круг сценариев."
                 )
 
@@ -1141,11 +1157,11 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             elif spot_key == "drain":
                 add_flag(user_id, "found_shower_wrapper")
                 add_clue_by_key(user_id, "shower_wrapper")
-                add_note(user_id, "У слива найден размокший клочок упаковки от таблеток. Кто-то явно пытался избавиться от него.")
+                add_note(user_id, "У слива найден размокший клочок упаковки от таблеток. Это уже прямая линия к версии с отравлением.")
                 text = (
                     "Вы проверяете слив.\n\n"
                     "В решётке застрял размокший кусок упаковки. По форме он слишком похож на часть блистера от таблеток.\n\n"
-                    "Это хорошо стыкуется с находкой на кухне."
+                    "Это одна из самых опасных улик в деле."
                 )
 
             elif spot_key == "cabin":
@@ -1232,8 +1248,33 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             query,
             context,
             "Вы подходите к записям с камер наблюдения.\n\n"
+            f"Предварительное время смерти, {TIME_OF_DEATH}.\n"
+            "Выберите камеру, потом нужный промежуток времени.\n\n"
             f"{moves_line(user_id)}",
             reply_markup=build_cameras_markup(),
+        )
+
+    elif query.data.startswith("camera_select:"):
+        if not state.get("case_started"):
+            await safe_show_text_screen(
+                query,
+                context,
+                "Сначала начните расследование.",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("Назад в меню", callback_data="main_menu")]]
+                ),
+            )
+            return
+
+        camera_key = query.data.split(":", 1)[1].strip()
+        camera_name = "кухни" if camera_key == "kitchen" else "коридора"
+
+        await safe_show_text_screen(
+            query,
+            context,
+            f"Вы выбираете запись с камеры {camera_name}.\n\n"
+            "Укажите временной промежуток:",
+            reply_markup=build_camera_time_markup(camera_key),
         )
 
     elif query.data.startswith("camera:"):
@@ -1248,9 +1289,10 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             return
 
-        camera_key = query.data.split(":", 1)[1].strip()
+        _, camera_key, slot_key = query.data.split(":")
+        view_key = f"{camera_key}:{slot_key}"
 
-        if camera_key not in state["viewed_cameras"]:
+        if view_key not in state["viewed_cameras"]:
             if not spend_move(user_id):
                 await safe_show_text_screen(
                     query,
@@ -1260,39 +1302,83 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
                 return
 
-        if camera_key == "kitchen":
-            mark_camera_viewed(user_id, "kitchen")
-            add_flag(user_id, "saw_kitchen_camera")
-            add_flag(user_id, "saw_maria_on_kitchen_camera")
-            add_clue_by_key(user_id, "kitchen_camera_maria")
-            add_note(user_id, "На записи с кухни видно Марию рядом с напитками. Теперь можно задавать ей более точные вопросы.")
+        mark_camera_viewed(user_id, view_key)
 
-            await safe_show_text_screen(
-                query,
-                context,
-                "Вы просматриваете камеру кухни.\n\n"
-                "На записи видно, как Мария задерживается у холодильника и полки с напитками дольше остальных.\n\n"
-                "Теперь у Марии открылись новые вопросы по камере кухни.\n\n"
-                f"{moves_line(user_id)}",
-                reply_markup=build_investigation_menu_markup(),
-            )
+        text = "На записи ничего полезного."
+        reply_markup = build_camera_time_markup(camera_key)
+
+        if camera_key == "kitchen":
+            if slot_key == "20_21":
+                add_flag(user_id, "saw_kitchen_20_21")
+                text = (
+                    "Вы просматриваете камеру кухни за 20:00–21:00.\n\n"
+                    "На записи тихо. Кухня почти пустая, в нужные минуты никого не видно.\n\n"
+                    "На камерах тишина и пусто."
+                )
+
+            elif slot_key == "21_22":
+                add_flag(user_id, "saw_kitchen_21_22")
+                add_flag(user_id, "saw_danil_kitchen_21_22")
+                add_clue_by_key(user_id, "camera_kitchen_21_22_danil")
+                add_note(user_id, "Камера кухни за 21:00–22:00 показывает Данила с ножом. Он режет хлеб и делает себе бутерброд. Это объясняет отпечатки на ноже.")
+                text = (
+                    "Вы просматриваете камеру кухни за 21:00–22:00.\n\n"
+                    "Около 21:37 Данил заходит на кухню, берёт тот самый нож и режет хлеб. Через пару минут он собирает себе бутерброд и уходит.\n\n"
+                    "Отпечатки на ноже получают бытовое объяснение."
+                )
+
+            elif slot_key == "22_23":
+                add_flag(user_id, "saw_kitchen_22_23")
+                add_flag(user_id, "saw_maria_kitchen_22_23")
+                add_clue_by_key(user_id, "camera_kitchen_22_23_maria")
+                add_note(user_id, f"Камера кухни за 22:00–23:00 показывает Марию у холодильника и рядом с напитками примерно в 22:41–22:44, почти перед временем смерти, {TIME_OF_DEATH}.")
+                text = (
+                    "Вы просматриваете камеру кухни за 22:00–23:00.\n\n"
+                    f"Около 22:41 Мария заходит на кухню. Она задерживается у холодильника и полки с напитками дольше остальных, а затем уходит буквально за несколько минут до времени смерти, {TIME_OF_DEATH}.\n\n"
+                    "Теперь линия с напитком выглядит намного опаснее именно для неё."
+                )
 
         elif camera_key == "corridor":
-            mark_camera_viewed(user_id, "corridor")
-            add_flag(user_id, "saw_corridor_camera")
-            add_flag(user_id, "saw_nikita_in_corridor")
-            add_clue_by_key(user_id, "corridor_camera_nikita")
-            add_note(user_id, "На записи коридора видно Никиту рядом с комнатой Ильи. Его алиби начинает трещать.")
+            if slot_key == "20_21":
+                add_flag(user_id, "saw_corridor_20_21")
+                add_flag(user_id, "saw_alina_corridor_20_21")
+                add_clue_by_key(user_id, "camera_corridor_20_21_alina")
+                add_note(user_id, "Камера коридора за 20:00–21:00 показывает Алину у комнаты Ильи. Она заходит ненадолго и выходит раньше. Это может объяснить найденную серьгу.")
+                text = (
+                    "Вы просматриваете камеру коридора за 20:00–21:00.\n\n"
+                    "Около 20:18 Алина подходит к комнате Ильи, заходит внутрь на короткое время и уже через пару минут выходит обратно.\n\n"
+                    "Это объясняет, почему её серьга могла остаться в комнате, но не связывает её напрямую со смертью."
+                )
 
-            await safe_show_text_screen(
-                query,
-                context,
-                "Вы просматриваете камеру коридора.\n\n"
-                "Никита появляется рядом с дверью комнаты Ильи незадолго до происшествия. Это расходится с его версией про библиотеку.\n\n"
-                "Теперь у Никиты открылся новый вопрос по камере коридора.\n\n"
-                f"{moves_line(user_id)}",
-                reply_markup=build_investigation_menu_markup(),
-            )
+            elif slot_key == "21_22":
+                add_flag(user_id, "saw_corridor_21_22")
+                add_flag(user_id, "saw_nikita_corridor_21_22")
+                add_clue_by_key(user_id, "camera_corridor_21_22_nikita")
+                add_note(user_id, "Камера коридора за 21:00–22:00 показывает Никиту у комнаты. Его след у двери получает объяснение, он действительно был там раньше.")
+                text = (
+                    "Вы просматриваете камеру коридора за 21:00–22:00.\n\n"
+                    "Около 21:12 Никита подходит к комнате, возится у двери и ненадолго заходит внутрь, а затем быстро выходит.\n\n"
+                    "След обуви у двери можно объяснить именно этим моментом."
+                )
+
+            elif slot_key == "22_23":
+                add_flag(user_id, "saw_corridor_22_23")
+                add_flag(user_id, "saw_timur_corridor_22_23")
+                add_clue_by_key(user_id, "camera_corridor_22_23_timur")
+                add_note(user_id, f"Камера коридора за 22:00–23:00 показывает Тимура в 22:44 у лестницы, на противоположной стороне от комнаты Ильи. Это даёт ему алиби почти впритык ко времени смерти, {TIME_OF_DEATH}.")
+                text = (
+                    "Вы просматриваете камеру коридора за 22:00–23:00.\n\n"
+                    f"В 22:44 Тимур попадает в кадр у лестницы на дальнем конце коридора. Он идёт от автомата с водой и находится слишком далеко от комнаты Ильи в момент, близкий ко времени смерти, {TIME_OF_DEATH}.\n\n"
+                    "Для Тимура это выглядит как серьёзное алиби. После 22:50 коридор снова пустеет.\n\n"
+                    "На камерах снова тишина и пусто."
+                )
+
+        await safe_show_text_screen(
+            query,
+            context,
+            text + f"\n\n{moves_line(user_id)}",
+            reply_markup=reply_markup,
+        )
 
     elif query.data == "interrogation":
         if not state.get("case_started"):
@@ -1356,74 +1442,56 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
             if suspect_key == "alina":
                 if question == "where":
-                    answer = "Алина отвечает без паузы.\n\nЯ была на этаже, потом ушла в душевую."
-                    add_note(user_id, "Алина утверждает, что после коридора ушла в душевую.")
+                    answer = "Алина отвечает без паузы.\n\nЯ была на этаже, потом уходила по своим делам."
                 elif question == "last_seen":
-                    answer = "Алина вспоминает.\n\nЯ видела его у комнаты незадолго до шума."
+                    answer = "Алина вспоминает.\n\nЯ видела его раньше вечером, но не перед самой смертью."
                 elif question == "relation":
                     answer = "Алина пожимает плечами.\n\nОн пару раз жаловался на шум, но мы почти не общались."
-                elif question == "heard_noise":
-                    answer = "Алина кивает.\n\nДа, на этаже было неспокойно. Кто-то явно говорил на повышенных тонах."
                 elif question == "heard_argument":
-                    answer = "Алина говорит осторожно.\n\nЭто был короткий спор. Я не могу точно назвать всех, но голосов было больше одного."
-                elif question == "kitchen_visit":
-                    answer = "Алина отвечает после паузы.\n\nДа, я заходила налить воды, но надолго не оставалась."
-                elif question == "kitchen_seen":
-                    answer = "Алина вспоминает.\n\nКто-то крутился у холодильника, но я не вглядывалась."
+                    answer = "Алина говорит осторожно.\n\nДа, спор точно был, но я не влезала."
+                elif question == "earring":
+                    worsen_trust_state(user_id, "alina", TRUST_CAREFUL)
+                    answer = "Алина заметно напрягается.\n\nЯ заходила раньше, ещё до всего этого. Наверное, тогда и потеряла серьгу."
+                elif question == "camera":
+                    answer = "Алина быстро отвечает.\n\nДа, это была я. Я заходила к Илье ещё около восьми вечера, мы коротко поговорили, и я ушла. Это было намного раньше."
                 elif question == "shower":
-                    answer = "Алина отвечает чуть быстрее.\n\nДа, я действительно была в душевой позже вечером."
+                    answer = "Алина кивает.\n\nДа, позже я действительно была в душевой."
 
             elif suspect_key == "timur":
                 if question == "where":
-                    answer = "Тимур отвечает спокойно.\n\nЯ был у себя, потом ненадолго выходил."
+                    answer = "Тимур отвечает спокойно.\n\nЯ был у себя, потом выходил ненадолго."
                 elif question == "last_seen":
-                    answer = "Тимур вздыхает.\n\nМы виделись днём. Вечером я только проходил мимо."
+                    answer = "Тимур вздыхает.\n\nМы виделись раньше. Перед самой смертью я с ним не пересекался."
                 elif question == "relation":
                     answer = "Тимур отвечает глухо.\n\nМы были друзьями. Иногда спорили по учёбе."
-                elif question == "heard_noise":
-                    answer = "Тимур качает головой.\n\nЧто-то слышал, но не придал этому значения."
                 elif question == "heard_argument":
                     worsen_trust_state(user_id, "timur", TRUST_CAREFUL)
-                    answer = "Тимур хмурится.\n\nДа, спор был. Но не всё на этаже крутится вокруг меня."
-                elif question == "kitchen_visit":
-                    answer = "Тимур отвечает чуть суше.\n\nЗаходил. Просто за водой."
-                elif question == "energy":
-                    answer = "Тимур морщится.\n\nИногда пью энергетики. В тот вечер тоже мог взять банку."
-                elif question == "camera_kitchen":
+                    answer = "Тимур хмурится.\n\nДа, спор был. Но это ещё не делает меня виноватым."
+                elif question == "glass":
                     worsen_trust_state(user_id, "timur", TRUST_CAREFUL)
-                    answer = "Тимур раздражается.\n\nКамера показывает кухню, а не преступление. Я просто заходил туда на минуту."
-                elif question == "corridor_camera":
-                    worsen_trust_state(user_id, "timur", TRUST_CAREFUL)
-                    answer = "Тимур говорит жёстче.\n\nЯ проходил мимо, и всё. Не вижу, что тут скрывать."
+                    answer = "Тимур морщится.\n\nЯ разбил стакан на кухне раньше вечером. Порезал палец, выбросил осколки и ушёл."
+                elif question == "camera":
+                    answer = "Тимур отвечает жёстче.\n\nЯ шёл от автомата с водой. Если камера это показывает в 22:44, значит я физически не мог быть в комнате Ильи в ту минуту."
                 elif question == "project":
                     answer = "Тимур отвечает после паузы.\n\nЯ знал, что вокруг проекта у них было напряжение. Но это было скорее между Ильёй и Марией."
 
             elif suspect_key == "nikita":
                 if question == "where":
-                    answer = "Никита отвечает резко.\n\nЯ был в библиотеке."
+                    answer = "Никита отвечает резко.\n\nЯ был то в комнате, то выходил. Весь вечер по минутам я вам не восстановлю."
                 elif question == "last_seen":
                     answer = "Никита отводит взгляд.\n\nМы виделись у комнаты раньше вечером."
                 elif question == "relation":
                     answer = "Никита усмехается.\n\nМы делили комнату. Иногда ругались."
-                elif question == "heard_noise":
-                    answer = "Никита говорит коротко.\n\nШум был. Это общежитие."
-                elif question == "heard_argument":
-                    answer = "Никита отвечает после паузы.\n\nСпор слышал, но не лез."
                 elif question == "room":
                     worsen_trust_state(user_id, "nikita", TRUST_CAREFUL)
                     answer = "Никита раздражается.\n\nЭто была и моя комната тоже."
-                elif question == "kitchen_visit":
-                    answer = "Никита хмурится.\n\nМог зайти. Не помню точно."
-                elif question == "energy":
-                    answer = "Никита отвечает уклончиво.\n\nЯ мог взять банку, но не для Ильи."
-                elif question == "drink":
+                elif question == "shoeprint":
                     worsen_trust_state(user_id, "nikita", TRUST_CAREFUL)
-                    answer = "Никита резко отвечает.\n\nЯ не носил ему никакой напиток."
-                elif question == "corridor_camera":
-                    worsen_trust_state(user_id, "nikita", TRUST_CAREFUL)
-                    answer = "Никита заметно напрягается.\n\nЯ был рядом с дверью, потому что это моя комната. Это ещё ничего не значит."
+                    answer = "Никита хмурится.\n\nКонечно это мог быть мой след, я там живу."
+                elif question == "camera":
+                    answer = "Никита сдержанно отвечает.\n\nДа, я подходил к комнате раньше. Вот вам и объяснение следа. Но это было до времени смерти."
                 elif question == "library":
-                    answer = "Никита отвечает жёстко.\n\nДа, я был в библиотеке. Что ещё вы хотите услышать."
+                    answer = "Никита отвечает суше.\n\nЯ заходил в библиотеку, но не сидел там безвылазно."
                 elif question == "library_gap":
                     worsen_trust_state(user_id, "nikita", TRUST_CAREFUL)
                     answer = "Никита злится.\n\nЯ выходил ненадолго. Это не делает меня убийцей."
@@ -1432,21 +1500,16 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 if question == "where":
                     answer = "Данил отвечает уверенно.\n\nЯ обходил этаж."
                 elif question == "last_seen":
-                    answer = "Данил говорит спокойно.\n\nВидел Илью мельком в коридоре."
+                    answer = "Данил говорит спокойно.\n\nВидел Илью мельком раньше вечером."
                 elif question == "relation":
                     answer = "Данил пожимает плечами.\n\nЯ следил за порядком, не больше."
-                elif question == "heard_noise":
-                    answer = "Данил вспоминает.\n\nДа, на этаже поднимались голоса."
-                elif question == "heard_argument":
-                    answer = "Данил отвечает осторожнее.\n\nПохоже, спор был у комнаты, но я не подошёл сразу."
                 elif question == "patrol":
                     answer = "Данил кивает.\n\nДа, это моя обязанность."
-                elif question == "kitchen_visit":
-                    answer = "Данил отвечает ровно.\n\nЗаглядывал туда, как и в другие общие зоны."
-                elif question == "energy":
-                    answer = "Данил смотрит внимательнее.\n\nЭнергетики там часто стоят, но в тот вечер их брали чаще обычного."
-                elif question == "corridor_camera":
-                    answer = "Данил спокойно отвечает.\n\nЯ действительно проходил мимо. Мне казалось, это несущественно."
+                elif question == "knife":
+                    worsen_trust_state(user_id, "danil", TRUST_CAREFUL)
+                    answer = "Данил отвечает ровно.\n\nНож мой, потому что я резал хлеб. Это кухня, а не место преступления."
+                elif question == "camera":
+                    answer = "Данил спокойно отвечает.\n\nВот и всё. Камера подтверждает, что нож был у меня только потому, что я делал себе бутерброд."
                 elif question == "shower":
                     answer = "Данил задумывается.\n\nПосле всего шума туда кто-то действительно мог зайти, чтобы быстро привести себя в порядок."
 
@@ -1459,25 +1522,19 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     answer = "Мария опускает глаза.\n\nМы учились вместе, иногда обсуждали задания."
                 elif question == "study":
                     answer = "Мария кивает.\n\nДа, у нас был общий проект."
-                elif question == "heard_noise":
-                    answer = "Мария говорит неуверенно.\n\nЧто-то было слышно, но я не вслушивалась."
-                elif question == "heard_argument":
-                    answer = "Мария немного напрягается.\n\nПоказалось, что кто-то спорил, но я не вышла смотреть."
-                elif question == "kitchen_visit":
-                    answer = "Мария отвечает после короткой паузы.\n\nДа, я заходила туда ненадолго."
-                elif question == "kitchen_seen":
-                    answer = "Мария подбирает слова.\n\nНа кухне кто-то был, но я не хочу ошибиться."
                 elif question == "phone":
-                    answer = "Мария смотрит на вас внимательнее.\n\nНе знаю. Мы не переписывались постоянно."
-                elif question == "call":
                     worsen_trust_state(user_id, "maria", TRUST_CAREFUL)
                     answer = "Мария заметно напрягается.\n\nОн звонил, но это был короткий разговор. Я не думала, что это важно."
                 elif question == "drink":
                     worsen_trust_state(user_id, "maria", TRUST_CAREFUL)
                     answer = "Мария отвечает тише.\n\nЯ не приносила ему напиток. Я только заходила на кухню."
-                elif question == "camera_kitchen":
+                elif question == "camera":
                     worsen_trust_state(user_id, "maria", TRUST_CAREFUL)
-                    answer = "Мария сжимает пальцы.\n\nЯ действительно была на кухне. Брала воду и стояла там дольше, чем собиралась."
+                    answer = (
+                        "Мария сжимает пальцы.\n\n"
+                        f"Я действительно была на кухне примерно перед {TIME_OF_DEATH}. "
+                        "Брала воду и стояла там дольше, чем собиралась."
+                    )
                 elif question == "project":
                     worsen_trust_state(user_id, "maria", TRUST_CAREFUL)
                     answer = "Мария холодеет.\n\nДа, между нами было напряжение из-за проекта и гранта. Но это не значит, что я хотела его смерти."
