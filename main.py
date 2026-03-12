@@ -71,7 +71,8 @@ SPOT_PHOTOS = {
 
     "corridor:floor": "pic/corridor/shoe_print.png",
     "corridor:window": "pic/corridor/paper.png",
-    "corridor:witnesses": "pic/corridor/witnesses.png",
+    "corridor:witnesses": "pic/corridor/dormitory_corridor.png",
+    "corridor:room": "pic/corridor/dorm_room.png",
 
     "shower:shelf": "pic/shower/shower_shelf.png",
     "shower:drain": "pic/shower/shower_floor.png",
@@ -81,6 +82,7 @@ SPOT_PHOTOS = {
     "library:log": "pic/library/attendance_logbook.png",
     "library:printer": "pic/library/printer.png",
     "library:librarian": "pic/library/woman.png",
+    "library:table": "pic/library/library.png",
 }
 
 CAMERA_MENU_PHOTO = "pic/cctv.png"
