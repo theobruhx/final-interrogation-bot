@@ -55,10 +55,10 @@ CONVOCATION_PHOTOS = {
 # фотографии локаций
 LOCATION_PHOTOS = {
     "kitchen": "pic/locations/kitchen.png",
-    "room": "pic/corridor/dorm_room.png",
-    "corridor": "pic/corridor/dormitory_corridor.png",
-    "shower": "pic/shower/shower_stall.png",
-    "library": "pic/library/library.png",
+    "room": "pic/location/dorm_room.png",
+    "corridor": "pic/location/corridor.png",
+    "shower": "pic/location/shower.png",
+    "library": "pic/location/library.png",
 }
 
 # фотографии точек осмотра
@@ -73,7 +73,7 @@ SPOT_PHOTOS = {
     "room:bedside": "pic/dorm_room/earring.png",
     "room:papers": "pic/dorm_room/workspace.png",
 
-    "corridor:witnesses": "pic/corridor/paper.png",
+    "corridor:witnesses": "pic/corridor/dormitory_corridor.png",
     "corridor:floor": "pic/corridor/shoe_print.png",
     "corridor:door": "pic/corridor/dorm_room.png",
     "corridor:window": "pic/corridor/paper.png",
