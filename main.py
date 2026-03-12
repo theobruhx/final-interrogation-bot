@@ -55,10 +55,10 @@ CONVOCATION_PHOTOS = {
 # фотографии локаций
 LOCATION_PHOTOS = {
     "kitchen": "pic/locations/kitchen.png",
-    "room": "pic/location/dorm_room.png",
-    "corridor": "pic/location/corridor.png",
-    "shower": "pic/location/shower.png",
-    "library": "pic/location/library.png",
+    "room": "pic/locations/dorm_room.png",
+    "corridor": "pic/locations/corridor.png",
+    "shower": "pic/locations/shower.png",
+    "library": "pic/locations/library.png",
 }
 
 # фотографии точек осмотра
