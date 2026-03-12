@@ -37,6 +37,7 @@ TRUST_CLOSED = "closed"
 CORRECT_SUSPECT = "maria"
 TIME_OF_DEATH = "22:45"
 
+# фотографии подозреваемых
 SUSPECT_PHOTOS = {
     "alina": "pic/suspects/Alina.png",
     "danil": "pic/suspects/Danil.png",
@@ -45,19 +46,22 @@ SUSPECT_PHOTOS = {
     "timur": "pic/suspects/Timur.png",
 }
 
+# фотографии победы/поражения
 CONVOCATION_PHOTOS = {
     "win": "pic/concovki/win.png",
     "lose": "pic/concovki/lose.png",
 }
 
+# фотографии локаций
 LOCATION_PHOTOS = {
     "kitchen": "pic/locations/kitchen.png",
-    "room": "pic/locations/dorm_room.png",
-    "corridor": "pic/locations/corridor.png",
-    "shower": "pic/locations/shower.png",
-    "library": "pic/locations/library.png",
+    "room": "pic/corridor/dorm_room.png",
+    "corridor": "pic/corridor/dormitory_corridor.png",
+    "shower": "pic/shower/shower_stall.png",
+    "library": "pic/library/library.png",
 }
 
+# фотографии точек осмотра
 SPOT_PHOTOS = {
     "kitchen:table": "pic/kitchen/knife.png",
     "kitchen:trash": "pic/kitchen/trash.png",
@@ -69,20 +73,20 @@ SPOT_PHOTOS = {
     "room:bedside": "pic/dorm_room/earring.png",
     "room:papers": "pic/dorm_room/workspace.png",
 
+    "corridor:witnesses": "pic/corridor/paper.png",
     "corridor:floor": "pic/corridor/shoe_print.png",
+    "corridor:door": "pic/corridor/dorm_room.png",
     "corridor:window": "pic/corridor/paper.png",
-    "corridor:witnesses": "pic/corridor/dormitory_corridor.png",
-    "corridor:room": "pic/corridor/dorm_room.png",
 
     "shower:shelf": "pic/shower/shower_shelf.png",
     "shower:drain": "pic/shower/shower_floor.png",
     "shower:cabin": "pic/shower/shower_stall.png",
     "shower:sink": "pic/shower/sink.png",
 
+    "library:tables": "pic/library/library.png",
     "library:log": "pic/library/attendance_logbook.png",
     "library:printer": "pic/library/printer.png",
     "library:librarian": "pic/library/woman.png",
-    "library:table": "pic/library/library.png",
 }
 
 CAMERA_MENU_PHOTO = "pic/cctv.png"
