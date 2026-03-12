@@ -45,6 +45,11 @@ SUSPECT_PHOTOS = {
     "timur": "pic/suspects/Timur.png",
 }
 
+CONVOCATION_PHOTOS = {
+    "win": "pic/concovki/win.png",
+    "lose": "pic/concovki/lose.png",
+}
+
 LOCATION_PHOTOS = {
     "kitchen": "pic/locations/kitchen.png",
     "room": "pic/locations/dorm_room.png",
@@ -64,7 +69,18 @@ SPOT_PHOTOS = {
     "room:bedside": "pic/dorm_room/earring.png",
     "room:papers": "pic/dorm_room/workspace.png",
 
-    "library:log": "pic/logbook.png",
+    "corridor:floor": "pic/corridor/shoe_print.png",
+    "corridor:window": "pic/corridor/paper.png",
+    "corridor:witnesses": "pic/corridor/witnesses.png",
+
+    "shower:shelf": "pic/shower/shower_shelf.png",
+    "shower:drain": "pic/shower/shower_floor.png",
+    "shower:cabin": "pic/shower/shower_stall.png",
+    "shower:sink": "pic/shower/sink.png",
+
+    "library:log": "pic/library/attendance_logbook.png",
+    "library:printer": "pic/library/printer.png",
+    "library:librarian": "pic/library/woman.png",
 }
 
 CAMERA_MENU_PHOTO = "pic/cctv.png"
